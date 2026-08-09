@@ -1,15 +1,13 @@
 from dotenv import load_dotenv
+from config import OPENAI_API_KEY, MODEL
 import os, time
 from openai import OpenAI, RateLimitError, APIError, AsyncOpenAI
-import redis
-
+from config import MODEL, BATCH, OPENAI_API_KEY
 
 
 load_dotenv()
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-aclient = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
-MODEL = "text-embedding-3-small"
-BATCH = 100
+client = OpenAI(api_key=OPENAI_API_KEY)
+aclient = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 def embed_batch(texts):
     '''Embed a list of strings

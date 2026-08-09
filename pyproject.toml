@@ -1,3 +1,5 @@
+[tool.fastapi]
+entrypoint = "api.main:app"
 [project]
 name = "llm-recommender"
 version = "0.1.0"

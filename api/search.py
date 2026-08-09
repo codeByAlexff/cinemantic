@@ -1,32 +1,14 @@
-import redis
-import hashlib
-from redis.exceptions import RedisError
-import asyncpg
-from pgvector.asyncpg import register_vector
-from embed import embed_query
-import json
-
-
-red = redis.Redis(host="localhost", port=6379, decode_responses=True)
-connection = asyncpg.connect("postgresql://localhost/moviedb")
-
+from embed import embed_query, MODEL
+from cache import make_key, get_vector, set_vector
 
 
 async def search(connection, query, year=None, runtime=None, min_rating=None):
-    try:
-        clean = query.lower().strip()
-        hashed_key = hashlib.sha256(clean.encode("utf-8")).hexdigest()
-        cached_query = red.get(hashed_key)
-        if cached_query:
-            #From Cache
-            vec = json.loads(cached_query)
-        else:
-            #From API - Not Cached
-            vec = await embed_query(clean)
-            red.set(hashed_key, json.dumps(vec), ex=60*60*24*30) #30 Days
-    except RedisError as e:
-        print(f"error caught: {e}. Moving on...")
-        vec = await embed_query(clean)
+
+    key = make_key(MODEL, query)
+    vec = get_vector(key)
+    if vec is None:
+        vec = await embed_query(query)
+        set_vector(key, vec)
 
     #Order by cosine distance between query vector and stored embeddings
     sql_query = '''SELECT id, title, year, genres, vote_average, overview, embedding <=> $1 AS distance, 
