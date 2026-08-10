@@ -9,17 +9,18 @@ from cache import red, RedisError, ping
 from pydantic import BaseModel
 from search import search
 from config import DSN
+from fastapi.middleware.cors import CORSMiddleware
 
 pool: Optional[asyncpg.Pool] = None
 
-#Backoff for retrying
+#Backoff for retrying, exponential retries
 @retry(stop=stop_after_attempt(4),wait=wait_exponential(multiplier=1, min=2, max=30))
 async def make_pool():
     # Initialize pool
     pool = await asyncpg.create_pool(dsn=DSN, init=register_vector)
     return pool
 
-
+#Pool Initialization
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     #attach to app state
@@ -32,6 +33,23 @@ async def lifespan(app: FastAPI):
     app.state.pool = None
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    #* is being utilized for testing, dont allow ALL connections
+    #Will change to frontend hosting url
+    allow_origins=["*"],
+    allow_methods=["*"]
+)
+
+'''
+Cross Origin Resource Sharing
+Key CORS Headers:
+Access-Control-Allow-Origin
+Access-Control-Allow-Methods
+Access-Control-Allow-Headers
+Access-Control-Allow-Credentials
+'''
 
 @app.get("/")
 async def root():
